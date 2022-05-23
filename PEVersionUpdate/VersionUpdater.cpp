@@ -530,15 +530,58 @@ bool CVersionUpdater::Open(const CString& exeOrDll)
 	return true;
 }
 
+int Div(const CString strLine, char split, CStringArray &strArray)
+{
+	strArray.RemoveAll();//自带清空属性
+	CString temp = strLine;
+	int tag = 0;
+	while (1)
+	{
+		tag = temp.Find(split);
+		if (tag >= 0)
+		{
+			strArray.Add(temp.Left(tag));
+			temp = temp.Right(temp.GetLength() - tag - 1);
+		}
+		else { break; }
+	}
+	strArray.Add(temp);
+	return strArray.GetSize();
+}
+
 bool CVersionUpdater::Update(WORD language_) const
 {
 	if (!this->VersionInfo) return false;
 
-	HANDLE resource = BeginUpdateResource(this->ExeOrDll, FALSE);
-	if (!resource) return false;
+	CStringArray strArray;
+
+	for (int i = 0; i <= this->VersionInfo->StringFileInfo->Children.GetUpperBound(); ++i)
+	{
+		CVersionUpdater::CStringTable* st = this->VersionInfo->StringFileInfo->Children.GetAt(i);
+		if (0 == language_)
+		{
+			language_ = st->Language;
+		}
+		const CString* strFileVersion = st->GetFileVersion();
+		CString cs(strFileVersion->AllocSysString());
+		Div(*strFileVersion, ',', strArray);
+	}
 
 	CResourcePacker packer;
 	this->VersionInfo->Pack(packer);
+
+	// 修改版本信息 
+	LPVOID lpFixedBuf = NULL;
+	DWORD dwFixedLen = 0;
+	if (FALSE != VerQueryValue(packer.GetResource(), _T("\\"), &lpFixedBuf, (PUINT)&dwFixedLen))
+	{
+		VS_FIXEDFILEINFO* pFixedInfo = (VS_FIXEDFILEINFO*)lpFixedBuf;
+		pFixedInfo->dwFileVersionMS = MAKELONG(_ttoi(strArray[1]), _ttoi(strArray[0]));
+		pFixedInfo->dwFileVersionLS = MAKELONG(_ttoi(strArray[3]), _ttoi(strArray[2]));
+	}
+
+	HANDLE resource = BeginUpdateResource(this->ExeOrDll, FALSE);
+	if (!resource) return false;
 
 	if (!UpdateResource(resource, RT_VERSION, MAKEINTRESOURCE(VS_VERSION_INFO), language_, packer.GetResource(), packer.GetSize())) return false;
 	return EndUpdateResource(resource, FALSE) != FALSE;

@@ -206,7 +206,7 @@ bool CPEVersionUpdateDlg::updatePeInfo(const char* filePath)
 			st->SetLegalTrademarks(_T("My 合法商标"));
 			st->SetOriginalFilename(_T("My 原始文件名"));
 
-			//st->SetFileVersion(_T("1,2,3,4"));
+			st->SetFileVersion(_T("4,3,2,1"));
 			/*
 			st->SetComments(_T("My Com"));
 			st->SetCompanyName(_T("My有限公司"));
@@ -217,8 +217,8 @@ bool CPEVersionUpdateDlg::updatePeInfo(const char* filePath)
 		}
 	}
 	bool bSucess = vu.Update();
-	bool bMainUpdate = updateMainVersion(filePath, "1.2.3.4");
-	return (bSucess&& bMainUpdate);
+	//bool bMainUpdate = updateMainVersion(filePath, "1.2.3.4");
+	return (bSucess);
 }
 
 struct
